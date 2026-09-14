@@ -1,3 +1,9 @@
+"""
+Code for assignment one. This file contains the trapezoid function to numerically estimate a
+definite integral of a function f(x).
+
+For help, please use -h whilst calling the script.
+"""
 import argparse
 from math import cos
 
@@ -18,12 +24,14 @@ def argument_parsing():
                         type=int)
     parser.add_argument("-b", "--upper_bound", help="the upper bound of the definite integral",
                         type=int)
-    parser.add_argument("-n", "--step_size", help="the number of steps to take in your numerical approximation",
+    parser.add_argument("-n", "--step_size",
+                        help="the number of steps to take in your numerical approximation",
                         type=int)
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     arguments = argument_parsing()
-    estimate = trapezoid(cos, arguments.lower_bound, arguments.upper_bound, n=arguments.step_size)
+    estimate = trapezoid(cos, arguments.lower_bound,
+                         arguments.upper_bound, n=arguments.step_size)
     print(arguments.step_size, estimate)
