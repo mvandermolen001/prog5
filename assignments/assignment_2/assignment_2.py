@@ -39,21 +39,42 @@ def argument_parsing():
     args = parser.parse_args()
     return args
 
-if rank == 0:
-    arguments = argument_parsing()
-    interval_size = (arguments.upper_bound - arguments.lower_bound) / size
-    step_size = int(arguments.step_size / size)
-    intervals = [(arguments.lower_bound + i * interval_size,
-                  arguments.lower_bound + (i + 1) * interval_size, step_size) for i in range(size)]
-else:
-    intervals, arguments = None, None
+def build_intervals(lower_bound, upper_bound, step_size):
+    """
+    This function builds smaller intervals from the initial lower bound and upper bound.
+    parameters:
+    lower_bound: the lower bound of the definite integral
+    upper_bound: the upper bound of the definite integral
+    step_size: the number of steps to take in your numerical approximation
+    returns: A list containing a tuple with the lower-, and upper bound along with the step size.
+    """
+    interval_size = (upper_bound - lower_bound) / size
+    step_size = int(step_size / size)
+    intervals = [(lower_bound + i * interval_size,
+                  lower_bound + (i + 1) * interval_size, step_size) for i in range(size)]
+    return intervals
 
-local_interval = comm.scatter(intervals, root=0)
-local_lower_bound, local_upper_bound, local_n = local_interval
-local_result = trapezoid(cos,local_lower_bound,
-    local_upper_bound,n=local_n)
+def main():
+    """
+    Main function that dictates the flow of the program.
+    In this case we let process with rank 0 build the intervals, and then we scatter them.
+    After that we reduce and then print the final result once they're in.
+    """
+    if rank == 0:
+        arguments = argument_parsing()
+        intervals = build_intervals(arguments.lower_bound, arguments.upper_bound, arguments.step_size)
+    else:
+        intervals = None
 
-result = comm.reduce(local_result, op=MPI.SUM, root=0)
+    local_interval = comm.scatter(intervals, root=0)
+    local_lower_bound, local_upper_bound, local_n = local_interval
+    local_result = trapezoid(cos, local_lower_bound,
+                             local_upper_bound, n=local_n)
 
-if rank == 0:
-    print(result)
+    result = comm.reduce(local_result, op=MPI.SUM, root=0)
+
+    if rank == 0:
+        print(result)
+
+if __name__ == "__main__":
+    main()
