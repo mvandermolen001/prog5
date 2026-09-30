@@ -36,6 +36,9 @@ def argument_parsing():
     parser.add_argument("-n", "--step_size",
                         help="the number of steps to take in your numerical approximation",
                         type=int)
+    parser.add_argument("-t", "--type",
+                        choices=["reduce", "broadcast"],
+                        help="the type of parallel run that is being done")
     args = parser.parse_args()
     return args
 
@@ -60,21 +63,31 @@ def main():
     In this case we let process with rank 0 build the intervals, and then we scatter them.
     After that we reduce and then print the final result once they're in.
     """
-    if rank == 0:
-        arguments = argument_parsing()
-        intervals = build_intervals(arguments.lower_bound, arguments.upper_bound, arguments.step_size)
+    arguments = argument_parsing()
+    if arguments.step_size == 1:
+        if rank == 0:
+            result = trapezoid(cos, arguments.lower_bound, arguments.upper_bound, n=arguments.step_size)
+            print(f"{arguments.step_size}:", result)
     else:
-        intervals = None
+        if rank == 0:
+            intervals = build_intervals(arguments.lower_bound, arguments.upper_bound, arguments.step_size)
+        else:
+            intervals = None
+        local_interval = comm.scatter(intervals)
+        local_lower_bound, local_upper_bound, local_n = local_interval
+        local_result = trapezoid(cos, local_lower_bound,
+                                 local_upper_bound, n=local_n)
 
-    local_interval = comm.scatter(intervals, root=0)
-    local_lower_bound, local_upper_bound, local_n = local_interval
-    local_result = trapezoid(cos, local_lower_bound,
-                             local_upper_bound, n=local_n)
+        if arguments.type == "reduce":
+            result = comm.reduce(local_result, op=MPI.SUM)
+        else:
+            result = comm.gather(local_result)
+            if result is not None:
+                result = sum(result)
 
-    result = comm.reduce(local_result, op=MPI.SUM, root=0)
+        if rank == 0:
+            print(f"{arguments.step_size}:", result)
 
-    if rank == 0:
-        print(result)
 
 if __name__ == "__main__":
     main()
