@@ -23,8 +23,12 @@ protein_table = Table("proteins", metadata_obj,
                       Column("locus_tag", String(50), nullable=False))
 
 go_table = Table("go_terms", metadata_obj,
-                 Column("go_id", String(30), nullable=False),
-                 Column("protein_id", String(100), nullable=False),)
+                 Column("GO_term", String(30), nullable=False),
+                 Column("protein_id", String(100), nullable=False))
+
+ec_table = Table("ec_terms", metadata_obj,
+                 Column("ec_id", String(30), nullable=False),
+                 Column("protein_id", String(100), nullable=False))
 
 
 def argument_parsing():
@@ -54,8 +58,19 @@ def insert_protein_data(engine, data):
 
 def insert_go_data(engine, data):
     """Inserts GO data into the database"""
-    query = text("INSERT INTO go_terms (go_id, protein_id) "
-                 "VALUES (:go_id, :protein_id)")
+    query = text("INSERT INTO go_terms (GO_term, protein_id) "
+                 "VALUES (:GO_term, :protein_id)")
+    conn = engine.connect()
+    conn.execute(query, data)
+    conn.commit()
+
+def insert_ec_data(engine, data):
+    """Inserts ec data into the database"""
+    query = text("INSERT INTO ec_terms (ec_id, protein_id) "
+                 "VALUES (:ec_id, :protein_id)")
+    conn = engine.connect()
+    conn.execute(query, data)
+    conn.commit()
 
 def extract_features(record, genbank_info):
     """
@@ -85,11 +100,11 @@ def extract_features(record, genbank_info):
                 # Get the EC and GO terms
                 for ec in feature.qualifiers.get("EC_number", []):
                     if ec is not None and protein_dict["protein_id"] is not None:
-                        ec_numbers.append([{"protein_id": protein_dict["protein_id"], "ec_number": ec}])
+                        ec_numbers.append({"protein_id": protein_dict["protein_id"], "ec_id": ec})
 
                 for db_xref in feature.qualifiers.get("db_xref", []):
-                    if db_xref.startswith("GO:") is not None:
-                        go_terms.append([{"protein_id":protein_dict["protein_id"], "GO_term":db_xref.split(":")[1]}])
+                    if db_xref.startswith("GO:"):
+                        go_terms.append({"protein_id":protein_dict["protein_id"], "GO_term":db_xref.split(":")[1]})
 
                 protein_list.append(protein_dict)
                 protein_dict = {}
@@ -135,6 +150,10 @@ def main():
         genome_info, protein_info, ec_info, go_info = extract_genome_info(record)
         insert_species_data(engine, genome_info)
         insert_protein_data(engine, protein_info)
+        if go_info:
+            insert_go_data(engine, go_info)
+        if ec_info:
+            insert_ec_data(engine, ec_info)
 
 if __name__ == "__main__":
     if sqlalchemy.__version__.startswith('1.4'):
