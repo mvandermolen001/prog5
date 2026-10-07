@@ -1,5 +1,6 @@
 import argparse
 import re
+import configparser
 import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
@@ -8,6 +9,7 @@ def argument_parsing():
     """Parses command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--genbank_file", help="the path to the genbank file")
+    parser.add_argument("-c", "--config_file", help="the path to the config file")
     args = parser.parse_args()
     return args
 
@@ -41,13 +43,23 @@ def parse_gbff(path):
         gb_information["protein_count"] = protein_count
     return gb_information
 
-def set_up_database(db):
+def set_up_database(config_path):
+    """
+    Sets up a database connection
+    params:
+    config_path: the path to the config file
+    returns:
+    the engine that manages the connection to the database
+    """
     # Database connection setup
-    connectionstring = open("~/.my.cnf").read()
-    print(connectionstring)
-    # engine = create_engine("")
-    # conn = engine.connect()
-    # conn.execute("STATUS")
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    db = config["client"]
+    url = URL.create("mysql+mysqldb",
+      username=db["user"],password=db["password"],
+      host=db["host"],port=int(db["port"]),database=db["database"])
+    engine = create_engine(url)
+    return engine
 
 if __name__ == "__main__":
     if sqlalchemy.__version__.startswith('1.4'):
@@ -56,4 +68,4 @@ if __name__ == "__main__":
         from sqlalchemy.engine.url import make_url, URL
     args = argument_parsing()
     parts = parse_gbff("genomic.gbff")
-    print(parts)
+    set_up_database(args.config_file)
