@@ -19,7 +19,7 @@ protein_table = Table("proteins", metadata_obj,
                       Column("protein_id", String(100), primary_key=True, nullable=False),
                       Column("product_name", String(200)),
                       Column("location", String(50), nullable=False),
-                      Column("gene_name", String(50), nullable=False),
+                      Column("gene_name", String(50), nullable=True),
                       Column("locus_tag", String(50), nullable=False))
 
 go_table = Table("go_terms", metadata_obj,
@@ -91,11 +91,12 @@ def extract_features(record, genbank_info):
             gene_counts += 1
         if feature.type == "CDS":
             protein_counts += 1
-            if feature.qualifiers.get("protein_id") is not None:
-                protein_dict["gene_name"] = feature.qualifiers.get("gene")[0]
-                protein_dict["locus_tag"] = feature.qualifiers.get("locus_tag", [None])[0]
-                protein_dict["product_name"] = feature.qualifiers.get("product", [None])[0]
-                protein_dict["protein_id"] = feature.qualifiers.get("protein_id")[0]
+            protein_id = feature.qualifiers.get("protein_id", [None])[0]
+            if protein_id is not None:
+                protein_dict["gene_name"] = feature.qualifiers.get("gene", ["None"])[0]
+                protein_dict["locus_tag"] = feature.qualifiers.get("locus_tag", ["None"])[0]
+                protein_dict["product_name"] = feature.qualifiers.get("product", ["None"])[0]
+                protein_dict["protein_id"] = protein_id
                 protein_dict["location"] = str(feature.location)
                 # Get the EC and GO terms
                 for ec in feature.qualifiers.get("EC_number", []):
@@ -146,10 +147,11 @@ def main():
     engine = set_up_database(config)
     #Sets tables up
     metadata_obj.create_all(engine)
-    for record in SeqIO.parse("genomic.gbff", "genbank"):
+    for record in SeqIO.parse(args.genbank_file, "genbank"):
         genome_info, protein_info, ec_info, go_info = extract_genome_info(record)
         insert_species_data(engine, genome_info)
-        insert_protein_data(engine, protein_info)
+        if protein_info:
+            insert_protein_data(engine, protein_info)
         if go_info:
             insert_go_data(engine, go_info)
         if ec_info:
