@@ -16,17 +16,20 @@ species_table = Table("species", metadata_obj,
                       Column("protein_count", Integer, nullable=False))
 
 protein_table = Table("proteins", metadata_obj,
-                      Column("protein_id", String(100), primary_key=True, nullable=False),
+                      Column("id", Integer, primary_key=True, autoincrement=True),
+                      Column("protein_id", String(100), nullable=False),
                       Column("product_name", String(200)),
                       Column("location", String(50), nullable=False),
                       Column("gene_name", String(50), nullable=True),
                       Column("locus_tag", String(50), nullable=False))
 
 go_table = Table("go_terms", metadata_obj,
+                 Column("id", Integer, primary_key=True, autoincrement=True),
                  Column("GO_term", String(30), nullable=False),
                  Column("protein_id", String(100), nullable=False))
 
 ec_table = Table("ec_terms", metadata_obj,
+                 Column("id", Integer, primary_key=True, autoincrement=True),
                  Column("ec_id", String(30), nullable=False),
                  Column("protein_id", String(100), nullable=False))
 
