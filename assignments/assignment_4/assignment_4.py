@@ -84,23 +84,23 @@ def main():
     # Average amount of features in a genome
     feature_amount = filtered_dataframe.count()
     genome_amount = filtered_dataframe.select("record_name").distinct().count()
-    print(f"The average amount of features per genome {feature_amount / genome_amount}")
+    print(f"The average amount of features per genome: {feature_amount / genome_amount}")
 
     # Minimum and maximum length of proteins of all organisms
     minimum = filtered_dataframe.where("type = 1").agg({'length': 'min'}).collect()
     maximum = filtered_dataframe.where("type = 1").agg({'length': 'max'}).collect()
-    print(f"Minimum length of a coding sequence is {minimum[0][0]}")
-    print(f"Maximum length of a coding sequence is {maximum[0][0]}")
+    print(f"Minimum length of a coding sequence is: {minimum[0][0]}")
+    print(f"Maximum length of a coding sequence is: {maximum[0][0]}")
 
     # Average length of a feature
     average_length = filtered_dataframe.agg({'length': 'mean'}).collect()
-    print(f"The average length of a feature is {average_length[0][0]}")
+    print(f"The average length of a feature is: {average_length[0][0]}")
 
     # Ratio between coding and non coding features
     coding_count = filtered_dataframe.filter("type == 1").count()
     # Add one to prevent division by zero
     non_coding_count = filtered_dataframe.filter("type == 0").count() + 1
-    print(f"This is the ratio of coding to non coding features in this file {coding_count / non_coding_count}")
+    print(f"This is the ratio of coding to non coding features in this file: {coding_count / non_coding_count}")
 
     # Remove all non-coding features and save this into a separate dataframe
     coding_df = filtered_dataframe.where("type = 1")
